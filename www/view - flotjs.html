@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    
+    <script language="javascript" type="text/javascript" src="js/flot/lib/jquery.mousewheel.js"></script>
+	<script language="javascript" type="text/javascript" src="js/flot/source/jquery.canvaswrapper.js"></script>
+	<script language="javascript" type="text/javascript" src="js/flot/source/jquery.colorhelpers.js"></script>
+	<script language="javascript" type="text/javascript" src="js/flot/source/jquery.flot.js"></script>
+	<script language="javascript" type="text/javascript" src="js/flot/source/jquery.flot.saturated.js"></script>
+	<script language="javascript" type="text/javascript" src="js/flot/source/jquery.flot.browser.js"></script>
+	<script language="javascript" type="text/javascript" src="js/flot/source/jquery.flot.drawSeries.js"></script>
+	<script language="javascript" type="text/javascript" src="js/flot/source/jquery.flot.uiConstants.js"></script>
+    
+
+    <style>
+        .blinking{
+        animation:blinkingText 1s infinite;
+        }
+        @keyframes blinkingText{
+            0%{     color: #000;    }
+            49%{    color: transparent; }
+            50%{    color: transparent; }
+            99%{    color:transparent;  }
+            100%{   color: #000;    }
+        }
+    </style>
+    <script type="text/javascript" src="http://localhost:1234/socket.io/socket.io.js"></script>
+    <title>IMEDIC</title>
+</head>
+<body onload="update()">
+<nav class="navbar navbar-expand-sm navbar-dark" style="background-color: #fd79a8;">
+<a class="navbar-brand" href="#">IMEDIC - Heart Monitoring System</a>
+<ul class="navbar-nav">
+    <li class="nav-item">
+        <a class="nav-link" href="index.html">HOME</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" href="pasiena.html">LIHAT PASIEN</a>
+    </li>
+</ul>
+</nav>
+  <div class="main">
+        <div class="container-fluid">
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-md-12"  align="right">
+                    <table style="font-weight: 700;">
+                        <tr>
+                            <td>Nama</td>
+                            <td> : </td>
+                            <td>Khairul Kanters</td>
+                        </tr>
+                        <tr>
+                            <td>Umur</td>
+                            <td> : </td>
+                            <td>20 Tahun</td>
+                        </tr>
+                        <tr>
+                            <td>Alamat</td>
+                            <td> : </td>
+                            <td>Jl Sinar Laut, Kp sukabirus</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-md-12" style="text-align: center;">
+                    <div class="alert alert-primary blinking">
+                        <strong>Normal Heart</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-md-12" style="text-align: center;">
+                    <h5 style="color: grey;">PPG - <small>Heartbeat Rate</small></h5>
+                    <div class="mx-auto" id="PPG" style="width: 80%; height:250px;"></div>
+                </div>
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-md-12" style="text-align: center;">
+                    <h5 style="color: grey;">BPM <img style="height: 20px;" src="media/heart.png" alt=""></h5>
+                    <div class="blinking"><strong style="font-size: 50px;" id="databpm">0</strong></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>    
+    var datahasil;
+    var totalPoints = 100;
+    var SensorPPG = [],
+        valSensorPPG = 0,
+        BPM = 0
+
+    function getSensorPPG(){
+        for (var i =0; i < totalPoints; ++i){
+            SensorPPG.push([i,0]);
+        }
+        return SensorPPG;
+    }
+
+    var updateInterval = 30;
+          
+    //Mulai
+    function update() {
+        var socket = io.connect();
+        socket.on("kirim", function(data){
+            console.log(data);
+            valSensorPPG = data.datasens[0];
+            BPM = data.datasens[1];
+
+            document.getElementById("databpm").innerHTML = BPM;
+
+            SensorPPG.push([totalPoints, valSensorPPG]);
+            SensorPPG.shift();
+
+            for (i=0;i<totalPoints; i++) { 
+                SensorPPG[i][0]=i;
+            }
+            //if(valSensorPPG > 100){
+            //    document.getelementByID("tampil").value = "tidak normal";
+            //}
+        });
+    }
+    
+    $( document ).ready(function() {
+
+        var plot = $.plot("#PPG", [ 
+            { data : getSensorPPG() , label : "PPG" },
+            ] , {
+                series: {
+                shadowSize: 0
+                },
+                yaxis: {
+                    min: 50000,
+                    max: 50000
+                },
+                xaxis: {
+                show: false
+                }
+        });
+
+
+        function updategraphPlot() {
+            plot.setData([
+                {data : SensorPPG}
+            ]);
+
+            plot.draw();
+            setTimeout(updategraphPlot, updateInterval);
+        }
+
+        updategraphPlot();
+    });
+</script>
+</html>

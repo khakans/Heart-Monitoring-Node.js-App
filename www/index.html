@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src='https://cdn.plot.ly/plotly-latest.min.js'></script>
+
+    <style>
+        .blinking{
+        animation:blinkingText 1s infinite;
+        }
+        @keyframes blinkingText{
+            0%{     color: #000;    }
+            49%{    color: transparent; }
+            50%{    color: transparent; }
+            99%{    color:transparent;  }
+            100%{   color: #000;    }
+        }
+    </style>
+    <script type="text/javascript" src="http://localhost:1234/socket.io/socket.io.js"></script>
+    <title>IMEDIC</title>
+</head>
+<body onload="update()">
+<nav class="navbar navbar-expand-sm navbar-dark" style="background-color: #fd79a8;">
+<a class="navbar-brand" href="#">IMEDIC - Heart Monitoring System</a>
+<ul class="navbar-nav">
+    <li class="nav-item">
+        <a class="nav-link" href="index.html">HOME</a>
+    </li>
+    <!-- <li class="nav-item">
+        <a class="nav-link" href="pasiena.html">LIHAT PASIEN</a>
+    </li> -->
+</ul>
+</nav>
+  <div class="main">
+        <div class="container-fluid">
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-md-12"  align="right">
+                    <table style="font-weight: 700;">
+                        <tr>
+                            <td>Anggota 1</td>
+                            <td> : </td>
+                            <td>Khairul Kanters</td>
+                        </tr>
+                        <tr>
+                            <td>Anggota 2</td>
+                            <td> : </td>
+                            <td>M Haikal Abdussalam</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-md-12" style="text-align: center;">
+                    <div class="alert alert-primary blinking">
+                        <strong>Heart Monitoring</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="row" style="margin-top: 10px;">
+                <div class="col-md-12" style="text-align: center;">
+                    <h5 style="color: grey;">PPG - <small>Heartbeat Rate</small></h5>
+                    <div class="mx-auto" id="PPG" style="width: 80%; margin-top: -10px;"></div>
+                </div>
+            </div>
+            <div class="row" style="margin-top: 50px;">
+                <div class="col-md-12" style="text-align: center;">
+                    <h5 style="color: grey;">BPM <img style="height: 10px;" src="media/heart.png" alt=""></h5>
+                    <div class="blinking" id="databpm"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>    
+    var datahasil;
+    var valSensorPPG = 0, BPM = 0
+    
+    //Mulai
+    function update() {
+        var socket = io.connect();
+        socket.on("kirim1", function(data){
+            console.log(data);
+            valSensorPPG = data.datasens1[0];
+        });
+        socket.on("kirim2", function(data){
+            console.log(data);
+            BPM = data.datasens2[0];
+            // BPM = 78;
+            if(BPM > 0){
+                document.getElementById("databpm").innerHTML = "<strong style='font-size: 50px;'>"+BPM*3+"</strong>";
+            }else{
+                document.getElementById("databpm").innerHTML = "<strong style='font-size: 20px;'>..Calculating..</strong>";
+            }
+            
+        });
+    }
+
+    var arrayLength = 200
+    var newArray = []
+
+    for(var i = 0; i < arrayLength; i++) {
+        var y = valSensorPPG
+        newArray[i] = y
+    }
+
+    var layout = {
+        autosize: true,
+        height: 250,
+        margin: {
+            l: 0,
+            r: 0,
+            b: 0,
+            t: 0
+        }
+    };
+
+    Plotly.plot('PPG', [{
+        y: newArray,
+        mode: 'lines',
+        name: 'spline',
+        text: ['tweak line smoothness<br>with "smoothing" in line object', 'tweak line smoothness<br>with "smoothing" in line object', 'tweak line smoothness<br>with "smoothing" in line object', 'tweak line smoothness<br>with "smoothing" in line object', 'tweak line smoothness<br>with "smoothing" in line object', 'tweak line smoothness<br>with "smoothing" in line object'],
+        line: {shape: 'spline'},
+        type: 'scatter'
+    }], layout);
+
+    var cnt = 0;
+
+    var interval = setInterval(function() {
+        
+        var y = valSensorPPG
+        newArray = newArray.concat(y)
+        newArray.splice(0, 1)
+        
+        var data_update = {
+            y: [newArray]
+        };
+        
+        Plotly.update('PPG', data_update)
+        
+        if(cnt === 100) clearInterval(interval);
+    }, 0); 
+
+</script>
+</html>
